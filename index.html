@@ -318,11 +318,12 @@
     .product-table tr:last-child td {
       border-bottom: none;
     }
-    
-    .product-table tr:hover td {
+
+    /* Removed - using .product-row:hover instead for expandable rows */
+    /* .product-table tr:hover td {
       background: var(--bg-muted);
-    }
-    
+    } */
+
     .product-name {
       font-weight: 500;
       color: var(--text-dark);
@@ -587,6 +588,61 @@
       font-size: 0.9rem;
       display: none;
     }
+
+    /* Expandable Row Styles */
+    .product-row {
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .product-row.no-expand {
+      cursor: default;
+    }
+
+    .product-row:hover {
+      background: #f8fafc;
+    }
+
+    .product-row.no-expand:hover {
+      background: transparent;
+    }
+
+    .product-row.expanded {
+      background: #eff6ff;
+    }
+
+    .expand-icon {
+      display: inline-block;
+      width: 16px;
+      margin-right: 8px;
+      transition: transform 0.2s;
+    }
+
+    .product-row.expanded .expand-icon {
+      transform: rotate(90deg);
+    }
+
+    .ingredient-row {
+      display: none;
+      background: #f0f9ff;
+    }
+
+    .ingredient-row.show {
+      display: table-row;
+    }
+
+    .ingredient-cell {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: #475569;
+    }
+
+    .ingredient-label {
+      color: #0ea5e9;
+      font-weight: 500;
+      margin-right: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -699,6 +755,82 @@
   <button class="scroll-top" id="scrollTop">↑</button>
 
   <script>
+    // Ingredient mapping data
+    const ingredientMapping = {
+      "지씨멀티5주": "chromic chloride hydrate 0.205mg(20.5μg/mL), cupric sulfate pentahydrate 15.7mg(1.57mg/mL), manganse sulfate hydrate 3.08mg(0.308mg/mL), selenious acid 0.327mg(32.7μg/mL), zinc sulfate hydrate 43.9mg(4.39mg/mL)",
+      "메가네슘주10%": "magnesium sulfate 0.5g(0.1g/mL)",
+      "푸르설타민주": "fursultiamine hydrochloride (as fursultiamine) 50.0mg(5mg/mL)",
+      "지씨비타일이주": "hydroxocobalamin 5.0mg(2.5mg/mL)",
+      "리보비타주": "riboflavin sodium phosphate(as riboflavin) 10.0mg(10mg/mL)",
+      "지씨비타오주": "dexpanthenol 0.5g(0.25g/mL)",
+      "메가비타식스주": "pyridoxine hydrochloride 50.0mg(50mg/mL)",
+      "메리트씨주사": "ascorbic acid 10.0g(0.5g/mL)",
+      "대한아스코르브산주사액": "ascorbic acid 0.1g(50mg/mL)",
+      "메리트디주": "cholecalciferol (as vitamin D) 200.0KI.U(200KI.U/mL)",
+      "비타벨라프리필드주사": "cholecalciferol (as vitamin D) 200.0KI.U(200KI.U/mL)",
+      "히시파겐씨주": "aminoacetic acid 0.4g(20mg/mL), ammonium glycyrrhizinate 53.0mg(2.65mg/mL), L-cystein hydrochloride 20.0mg(1mg/mL)",
+      "네오미노화겐씨주": "aminoacetic acid 0.4g(20mg/mL), ammonium glycyrrhizinate 53.0mg(2.65mg/mL), L-cystein hydrochloride 20.0mg(1mg/mL)",
+      "본큐어주": "ibandronic acid monosodium salt monohydrate (as ibandronic acid) 3.0mg(1mg/mL)",
+      "유드론주": "ibandronic acid monosodium salt monohydrate (as ibandronic acid) 3.0mg(1mg/mL)",
+      "오보덴스pf": "denosumab 60.0mg(60mg/mL)",
+      "프롤리아": "denosumab 60.0mg(60mg/mL)",
+      "베라카인스프레이": "lidocaine 0.1g",
+      "디펩티벤주": "N(2)-L-alanyl-L-glutamine 10.0g(0.2g/mL)",
+      "디톡시온주 600mg": "glutathione(reducing) 600.0mg",
+      "아큐판주사액": "nefopam hydrochloride 20.0mg(10mg/mL)",
+      "크린뷰올산": "ascorbic acid 40.6g, polyethylene glycol 3350 160.0g, potassium chloride 1.0g, sodium ascorbate 9.4g, sodium chloride 2.7g, sodium sulfate anhydrous 18.0g",
+      "플렌뷰산": "ascorbic acid 7.54g, polyethylene glycol 3350 140.0g, potassium chloride 2.2g, sodium ascorbate 48.11g, sodium chloride 5.2g, sodium sulfate anhydrous 9.0g",
+      "엔도콜액": "simethicone 0.2g(20mg/mL)",
+      "오라팡정": "magnesium sulfate  0.10286g, sodium sulfate 1.125g, potassium sulfate 0.20107g, simethicone 11.43mg",
+      "하프렙산": "ascorbic acid 9.4g, polyethylene glycol 3350 200.0g, potassium chloride 2.03g, sodium ascorbate 11.8g, sodium chloride 5.382g, sodium sulfate anhydrous 15.0g",
+      "원프렙일점삼팔산": "ascorbic acid 5.0g, d-sorbitol 37.9g, sodium picosulfate 10.0mg",
+      "유니페라미비르주": "peramivir hydrate (as peramivir) 0.3g(5mg/mL)",
+      "대한에피네프린주사액": "epinephrine hydrochloride (as epinephrine) 1.0mg(1mg/mL)",
+      "성광리도카인젤리": "lidocaine hydrochloride 20.0mg",
+      "싸이원주": "thymosin-α1 1.6mg",
+      "유박스비프리필드주": "inactivated hepatitis B virus 20.0㎍",
+      "스카이셀플루주": "influenza virus antigen type A(H1N1), inactivated and purified 15.0㎍, influenza virus antigen type A(H3N2), inactivated and purified 15.0㎍, influenza virus antigen type B, inactivated and purified 15.0㎍",
+      "스카이조스터주": "live attenuated varicella virus 27400.0PFU이상",
+      "싸이젠리퀴드카트리지주": "somatropin 18.0147I.U(17.49I.U/mL)",
+      "동광세프트리악손주 1g": "ceftriaxone sodium hydrate 1.0g",
+      "디크놀주사": "diclofenac-β-dimethyl-aminoethanol 90.0mg(45mg/mL)",
+      "미졸람주_5mL": "midazolam 5.0mg(1mg/mL)",
+      "바스캄주_3mL": "midazolam 3.0mg(1mg/mL)",
+      "대한5%포도당가생리식염액": "dextrose 25.0g(50mg/mL), sodium chloride 4.5g(9mg/mL)",
+      "대한관류용멸균생리식염수": "sodium chloride 9.0g(9mg/mL)",
+      "대한관류용멸균증류수": "water for injection",
+      "대한멸균생리식염수": "sodium chloride(0.9%) 4.5g(9mg/mL)",
+      "대한생리식염주사액": "sodium chloride(0.9%) 0.18g(9mg/mL)",
+      "하트만액": "calcium chloride 0.2g(0.2mg/mL), potassium chloride 0.3g(0.3mg/mL), sodium chloride 6.0g(6mg/mL), sodium lactate 3.1g(3.1mg/mL)",
+      "콤비플렉스엠시티페리주": "calcium chloride dihydrate(C액 375mL중) 0.1323g, glucose monohydrate(as glucose anhydate)(A액 375mL중) 24.0g, glycine(C액 375mL중) 0.495g, L-alanine(C액 375mL중) 1.455g, L-arginine(C액 375mL중) 0.81g, L-asparaginic acid(C액 375mL중) 0.45g, L-glutamic acid(C액 375mL중) 1.05g, L-histidine hydrochloride monohydrate (as histidine)(C액 375mL중) 0.375g, L-isoleucine(C액 375mL중) 0.702g, L-leucine(C액 375mL중) 0.939g, L-lysine hydrochloride (as lysine)(C액 375mL중) 0.678g, L-methionine(C액 375mL중) 0.588g, L-phenylalanine(C액 375mL중) 1.053g, L-proline(C액 375mL중) 1.02g, L-serine(C액 375mL중) 0.9g, L-threonine(C액 375mL중) 0.546g, L-tryptophan(C액 375mL중) 0.171g, L-valine(C액 375mL중) 0.78g, magnesium acetate tetrahydrate(C액 375mL중) 0.1932g, medium chain triglyceride(B액 375mL중) 7.5g, potassium acetate(C액 375mL중) 0.8829g, sodium acetate trihydrate(C액 375mL중) 0.1632g, sodium chloride(C액 375mL중) 0.3243g, sodium dihydrogen phosphate dihydrate(A액 375mL중) 0.351g, sodium hydroxide(C액 375mL중) 0.24g, soybean oil(B액 375mL중) 7.5g, Zinc acetate dihydrate(A액 375mL중) 1.9875mg",
+      "파노펜주": "acetaminophen 1.0g(10mg/mL)",
+      "휴메딕스덱사메타손포스페이트이나트륨주사": "dexamethasone disodium phosphate 5.0mg(5mg/mL)",
+      "진코발주": "ginkgo biloba leaf ext. 17.5mg(3.5mg/mL)",
+      "베노스틴주": "iron hydoxide sucrose complex (as Fe) 0.2g(20mg/mL)",
+      "라이넥주": "placenta hydrolysate 2.0mL(1mL/mL)",
+      "메르스몬주": "human placenta ext. 2.0ml",
+      "트롤주": "tramadol hydrochloride 50.0mg(50mg/mL)",
+      "제일티옥트산주": "thioctic acid(α-lipoic acid) 25.0mg(5mg/mL)",
+      "포폴주사_12mL": "propofol 0.12g(10mg/mL)",
+      "포폴주사_8mL": "propofol 80.0mg(10mg/mL)",
+      "프리폴-엠시티주_12mL": "propofol 0.12g(10mg/mL)",
+      "메트리날주": "metronidazole 0.5g(5mg/mL)",
+      "비니카핀주(니카르디핀염산염)": "nicardipine hydrochloride 5.0mg(1mg/mL)",
+      "지씨비본주": "sodium bicarbonate 0.168g(84mg/mL)",
+      "지씨엔에이씨주": "acetylcysteine 0.3g(0.1g/mL)",
+      "멕쿨주": "metoclopramide hydrochloride 10.0mg(5mg/mL)",
+      "휴온스암브록솔염산염주사액": "ambroxol hydrochloride 15.0mg(7.5mg/mL)",
+      "휴온스클로르페니라민말레산염주사액": "chlorpheniramine maleate 4.0mg(2mg/mL)",
+      "히스판주": "hyoscine butylbromide 20.0mg(20mg/mL)",
+      "대한디클로페낙주": "diclofenac sodium 75.0mg(37.5mg/mL)",
+      "케로라주": "ketorolac tromethamine 30.0mg(30mg/mL)",
+      "가스터주사액20mg": "famotidine 20.0mg",
+      "알피트주사": "cimetropium bromide 5.0mg(5mg/mL)",
+      "카르민주0.8%(인디고카르민)": "indigocarmine 40.0mg(8mg/mL)",
+      "덱사메타손포스페이트주사": "dexamethasone disodium phosphate 5.0mg(5mg/mL)",
+      "비니카핀주(니카르디핀)": "nicardipine hydrochloride 5.0mg(1mg/mL)"
+    };
+
     // Product data
     const products = {
       vitamin: {
@@ -706,26 +838,26 @@
         icon: "💉",
         color: "#0E5C8A",
         items: [
-          { category: "5종미량원소", manufacturer: "(주)녹십자웰빙", name: "지씨멀티5주", spec: "10mL/10V", price: 39100 },
-          { category: "MG", manufacturer: "(주)녹십자웰빙", name: "메가네슘주10%", spec: "5mL/50A", price: 39500 },
-          { category: "Vit B1", manufacturer: "(주)녹십자웰빙", name: "푸르설타민주", spec: "10mL/10A", price: 23000 },
-          { category: "Vit B2", manufacturer: "대한약품공업(주)", name: "리보비타주", spec: "1mL/50A", price: 16000 },
-          { category: "Vit B5", manufacturer: "(주)녹십자웰빙", name: "지씨비타오주", spec: "2mL/50A", price: 58000 },
-          { category: "Vit B6", manufacturer: "(주)녹십자웰빙", name: "메가비타식스주", spec: "1mL/50A", price: 19500 },
-          { category: "Vit B12", manufacturer: "(주)녹십자웰빙", name: "지씨비타일이주", spec: "2mL/50A", price: 55000 },
-          { category: "Vit C", manufacturer: "(주)휴온스메디텍", name: "메리트씨주사", spec: "20mL/10V", price: 20000, tags: ["cold"] },
-          { category: "Vit C", manufacturer: "대한약품공업(주)", name: "대한아스코르브산주사액", spec: "2mL/50A", price: 9950 },
-          { category: "Vit D3", manufacturer: "(주)휴온스메디텍", name: "메리트디주", spec: "20만IU/1mL/10A", price: 40000 },
-          { category: "Vit D3", manufacturer: "동국제약(주)", name: "비타벨라프리필드주사", spec: "1ml/10PF", price: 41000 },
-          { category: "감초", manufacturer: "(주)녹십자웰빙", name: "히시파겐씨주", spec: "20mL/50A", price: 175000 },
-          { category: "감초", manufacturer: "한올바이오파마(주)", name: "네오미노화겐씨주", spec: "20mL/30A", price: 111500 },
-          { category: "글루타민", manufacturer: "프레지니우스카비코리아(주)", name: "디펩티벤주", spec: "50mL/10A", price: 121000 },
-          { category: "글루타치온", manufacturer: "동광제약(주)", name: "디톡시온주 600mg", spec: "10V", price: 31350 },
-          { category: "은행엽", manufacturer: "(주)휴온스메디텍", name: "진코발주", spec: "25A", price: 30000 },
-          { category: "철분주사", manufacturer: "동국제약(주)", name: "베노스틴주", spec: "10mL/5A", price: 60500 },
-          { category: "태반", manufacturer: "(주)녹십자웰빙", name: "라이넥주", spec: "2mL/50A", price: 319500 },
-          { category: "태반", manufacturer: "기타제조사", name: "메르스몬주", spec: "2mL/50A", price: 390000 },
-          { category: "티옥트산", manufacturer: "제일약품(주)", name: "제일티옥트산주", spec: "5ml/25A", price: 40000 }
+          { category: "5종미량원소", manufacturer: "(주)녹십자웰빙", name: "지씨멀티5주", spec: "10mL/10V", price: 39100, ingredients: ingredientMapping["지씨멀티5주"] },
+          { category: "MG", manufacturer: "(주)녹십자웰빙", name: "메가네슘주10%", spec: "5mL/50A", price: 39500, ingredients: ingredientMapping["메가네슘주10%"] },
+          { category: "Vit B1", manufacturer: "(주)녹십자웰빙", name: "푸르설타민주", spec: "10mL/10A", price: 23000, ingredients: ingredientMapping["푸르설타민주"] },
+          { category: "Vit B2", manufacturer: "대한약품공업(주)", name: "리보비타주", spec: "1mL/50A", price: 16000, ingredients: ingredientMapping["리보비타주"] },
+          { category: "Vit B5", manufacturer: "(주)녹십자웰빙", name: "지씨비타오주", spec: "2mL/50A", price: 58000, ingredients: ingredientMapping["지씨비타오주"] },
+          { category: "Vit B6", manufacturer: "(주)녹십자웰빙", name: "메가비타식스주", spec: "1mL/50A", price: 19500, ingredients: ingredientMapping["메가비타식스주"] },
+          { category: "Vit B12", manufacturer: "(주)녹십자웰빙", name: "지씨비타일이주", spec: "2mL/50A", price: 55000, ingredients: ingredientMapping["지씨비타일이주"] },
+          { category: "Vit C", manufacturer: "(주)휴온스메디텍", name: "메리트씨주사", spec: "20mL/10V", price: 20000, tags: ["cold"], ingredients: ingredientMapping["메리트씨주사"] },
+          { category: "Vit C", manufacturer: "대한약품공업(주)", name: "대한아스코르브산주사액", spec: "2mL/50A", price: 9950, ingredients: ingredientMapping["대한아스코르브산주사액"] },
+          { category: "Vit D3", manufacturer: "(주)휴온스메디텍", name: "메리트디주", spec: "20만IU/1mL/10A", price: 40000, ingredients: ingredientMapping["메리트디주"] },
+          { category: "Vit D3", manufacturer: "동국제약(주)", name: "비타벨라프리필드주사", spec: "1ml/10PF", price: 41000, ingredients: ingredientMapping["비타벨라프리필드주사"] },
+          { category: "감초", manufacturer: "(주)녹십자웰빙", name: "히시파겐씨주", spec: "20mL/50A", price: 175000, ingredients: ingredientMapping["히시파겐씨주"] },
+          { category: "감초", manufacturer: "한올바이오파마(주)", name: "네오미노화겐씨주", spec: "20mL/30A", price: 111500, ingredients: ingredientMapping["네오미노화겐씨주"] },
+          { category: "글루타민", manufacturer: "프레지니우스카비코리아(주)", name: "디펩티벤주", spec: "50mL/10A", price: 121000, ingredients: ingredientMapping["디펩티벤주"] },
+          { category: "글루타치온", manufacturer: "동광제약(주)", name: "디톡시온주 600mg", spec: "10V", price: 31350, ingredients: ingredientMapping["디톡시온주 600mg"] },
+          { category: "은행엽", manufacturer: "(주)휴온스메디텍", name: "진코발주", spec: "25A", price: 30000, ingredients: ingredientMapping["진코발주"] },
+          { category: "철분주사", manufacturer: "동국제약(주)", name: "베노스틴주", spec: "10mL/5A", price: 60500, ingredients: ingredientMapping["베노스틴주"] },
+          { category: "태반", manufacturer: "(주)녹십자웰빙", name: "라이넥주", spec: "2mL/50A", price: 319500, ingredients: ingredientMapping["라이넥주"] },
+          { category: "태반", manufacturer: "기타제조사", name: "메르스몬주", spec: "2mL/50A", price: 390000, ingredients: ingredientMapping["메르스몬주"] },
+          { category: "티옥트산", manufacturer: "제일약품(주)", name: "제일티옥트산주", spec: "5ml/25A", price: 40000, ingredients: ingredientMapping["제일티옥트산주"] }
         ]
       },
       fluid: {
@@ -733,23 +865,23 @@
         icon: "💧",
         color: "#0E8A7D",
         items: [
-          { category: "TPN", manufacturer: "에이치케이이노엔(주)", name: "오마프원페리주", spec: "362mL/백", price: 28300 },
-          { category: "TPN", manufacturer: "제이더블유생명과학(주)", name: "콤비플렉스엠시티페리주", spec: "375mL/백", price: 28125 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한5%포도당가생리식염액", spec: "500mL/백", price: 1345 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "하트만액", spec: "500mL/백", price: 1339 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "하트만액", spec: "1000mL/백", price: 1544 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "500mL/백", price: 1300 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "250mL/백", price: 1300 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한생리식염주사액", spec: "20mL/50A[PP]", price: 13750 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "110mL/병[PP]", price: 1342 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "100mL/백", price: 1110 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "100mL/병[PP]", price: 1110 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한관류용멸균증류수", spec: "1000mL/병[PP]", price: 990 },
-          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한관류용멸균생리식염수", spec: "1000mL/병[PP]", price: 1000 },
-          { category: "아미노산", manufacturer: "대한약품공업(주)", name: "아르믹스주", spec: "100mL/백", price: 3000 },
-          { category: "아미노산", manufacturer: "대한약품공업(주)", name: "아르믹스주", spec: "100mL/병", price: 3000 },
-          { category: "아미노산", manufacturer: "대한약품공업(주)", name: "아르믹스주", spec: "250mL/백", price: 5500 },
-          { category: "아세트아미노펜", manufacturer: "동광제약(주)", name: "파노펜주", spec: "100mL/20백", price: 58000 }
+          { category: "TPN", manufacturer: "에이치케이이노엔(주)", name: "오마프원페리주", spec: "362mL/백", price: 28300, ingredients: ingredientMapping["오마프원페리주"] },
+          { category: "TPN", manufacturer: "제이더블유생명과학(주)", name: "콤비플렉스엠시티페리주", spec: "375mL/백", price: 28125, ingredients: ingredientMapping["콤비플렉스엠시티페리주"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한5%포도당가생리식염액", spec: "500mL/백", price: 1345, ingredients: ingredientMapping["대한5%포도당가생리식염액"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "하트만액", spec: "500mL/백", price: 1339, ingredients: ingredientMapping["하트만액"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "하트만액", spec: "1000mL/백", price: 1544, ingredients: ingredientMapping["하트만액"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "500mL/백", price: 1300, ingredients: ingredientMapping["대한멸균생리식염수"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "250mL/백", price: 1300, ingredients: ingredientMapping["대한멸균생리식염수"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한생리식염주사액", spec: "20mL/50A[PP]", price: 13750, ingredients: ingredientMapping["대한생리식염주사액"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "110mL/병[PP]", price: 1342, ingredients: ingredientMapping["대한멸균생리식염수"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "100mL/백", price: 1110, ingredients: ingredientMapping["대한멸균생리식염수"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한멸균생리식염수", spec: "100mL/병[PP]", price: 1110, ingredients: ingredientMapping["대한멸균생리식염수"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한관류용멸균증류수", spec: "1000mL/병[PP]", price: 990, ingredients: ingredientMapping["대한관류용멸균증류수"] },
+          { category: "수액", manufacturer: "대한약품공업(주)", name: "대한관류용멸균생리식염수", spec: "1000mL/병[PP]", price: 1000, ingredients: ingredientMapping["대한관류용멸균생리식염수"] },
+          { category: "아미노산", manufacturer: "대한약품공업(주)", name: "아르믹스주", spec: "100mL/백", price: 3000, ingredients: ingredientMapping["아르믹스주"] },
+          { category: "아미노산", manufacturer: "대한약품공업(주)", name: "아르믹스주", spec: "100mL/병", price: 3000, ingredients: ingredientMapping["아르믹스주"] },
+          { category: "아미노산", manufacturer: "대한약품공업(주)", name: "아르믹스주", spec: "250mL/백", price: 5500, ingredients: ingredientMapping["아르믹스주"] },
+          { category: "아세트아미노펜", manufacturer: "동광제약(주)", name: "파노펜주", spec: "100mL/20백", price: 58000, ingredients: ingredientMapping["파노펜주"] }
         ]
       },
       anesthesia: {
@@ -757,16 +889,16 @@
         icon: "😴",
         color: "#6B46C1",
         items: [
-          { category: "구강마취", manufacturer: "(주)퍼슨", name: "베라카인스프레이", spec: "50mL/1EA", price: 7900 },
-          { category: "마취젤리", manufacturer: "(주)퍼슨", name: "성광리도카인젤리", spec: "120g", price: 15000 },
-          { category: "네포팜", manufacturer: "(주)한국팜비오", name: "아큐판주사액", spec: "2mL/20A", price: 44000 },
-          { category: "마취제", manufacturer: "대한약품공업(주)", name: "대한에피네프린주사액", spec: "1mL/50A", price: 16500 },
-          { category: "진정제", manufacturer: "(주)휴온스메디텍", name: "미졸람주_5mL", spec: "10A", price: 7000, tags: ["controlled"] },
-          { category: "진정제", manufacturer: "하나제약(주)", name: "바스캄주_3mL", spec: "10A", price: 7000, tags: ["controlled"] },
-          { category: "트라마돌", manufacturer: "대한약품공업(주)", name: "트롤주", spec: "1mL/50A", price: 15000 },
-          { category: "프로포폴", manufacturer: "동국제약(주)", name: "포폴주사_12mL", spec: "5A", price: 9060, tags: ["controlled"] },
-          { category: "프로포폴", manufacturer: "동국제약(주)", name: "포폴주사_8mL", spec: "10A", price: 14930, tags: ["controlled"] },
-          { category: "프로포폴", manufacturer: "주식회사다나젠", name: "프리폴-엠시티주_12mL", spec: "10V", price: 17590, tags: ["controlled"] }
+          { category: "구강마취", manufacturer: "(주)퍼슨", name: "베라카인스프레이", spec: "50mL/1EA", price: 7900, ingredients: ingredientMapping["베라카인스프레이"] },
+          { category: "마취젤리", manufacturer: "(주)퍼슨", name: "성광리도카인젤리", spec: "120g", price: 15000, ingredients: ingredientMapping["성광리도카인젤리"] },
+          { category: "네포팜", manufacturer: "(주)한국팜비오", name: "아큐판주사액", spec: "2mL/20A", price: 44000, ingredients: ingredientMapping["아큐판주사액"] },
+          { category: "마취제", manufacturer: "대한약품공업(주)", name: "대한에피네프린주사액", spec: "1mL/50A", price: 16500, ingredients: ingredientMapping["대한에피네프린주사액"] },
+          { category: "진정제", manufacturer: "(주)휴온스메디텍", name: "미졸람주_5mL", spec: "10A", price: 7000, tags: ["controlled"], ingredients: ingredientMapping["미졸람주_5mL"] },
+          { category: "진정제", manufacturer: "하나제약(주)", name: "바스캄주_3mL", spec: "10A", price: 7000, tags: ["controlled"], ingredients: ingredientMapping["바스캄주_3mL"] },
+          { category: "트라마돌", manufacturer: "대한약품공업(주)", name: "트롤주", spec: "1mL/50A", price: 15000, ingredients: ingredientMapping["트롤주"] },
+          { category: "프로포폴", manufacturer: "동국제약(주)", name: "포폴주사_12mL", spec: "5A", price: 9060, tags: ["controlled"], ingredients: ingredientMapping["포폴주사_12mL"] },
+          { category: "프로포폴", manufacturer: "동국제약(주)", name: "포폴주사_8mL", spec: "10A", price: 14930, tags: ["controlled"], ingredients: ingredientMapping["포폴주사_8mL"] },
+          { category: "프로포폴", manufacturer: "주식회사다나젠", name: "프리폴-엠시티주_12mL", spec: "10V", price: 17590, tags: ["controlled"], ingredients: ingredientMapping["프리폴-엠시티주_12mL"] }
         ]
       },
       bone: {
@@ -774,10 +906,10 @@
         icon: "🦴",
         color: "#D97706",
         items: [
-          { category: "골다공증", manufacturer: "(주)라이트팜텍", name: "본큐어주", spec: "3mL/1관[PF]", price: 54246 },
-          { category: "골다공증", manufacturer: "(주)유영제약", name: "유드론주", spec: "3mL/1관[PF]", price: 54202 },
-          { category: "골다공증", manufacturer: "삼성바이오에피스(주)", name: "오보덴스pf", spec: "1mL/1PF", price: 108290, tags: ["bio"] },
-          { category: "골다공증", manufacturer: "암젠코리아유한회사", name: "프롤리아", spec: "1mL/1PF", price: 123760, tags: ["bio"] }
+          { category: "골다공증", manufacturer: "(주)라이트팜텍", name: "본큐어주", spec: "3mL/1관[PF]", price: 54246, ingredients: ingredientMapping["본큐어주"] },
+          { category: "골다공증", manufacturer: "(주)유영제약", name: "유드론주", spec: "3mL/1관[PF]", price: 54202, ingredients: ingredientMapping["유드론주"] },
+          { category: "골다공증", manufacturer: "삼성바이오에피스(주)", name: "오보덴스pf", spec: "1mL/1PF", price: 108290, tags: ["bio"], ingredients: ingredientMapping["오보덴스pf"] },
+          { category: "골다공증", manufacturer: "암젠코리아유한회사", name: "프롤리아", spec: "1mL/1PF", price: 123760, tags: ["bio"], ingredients: ingredientMapping["프롤리아"] }
         ]
       },
       endoscopy: {
@@ -785,18 +917,18 @@
         icon: "🔬",
         color: "#DC2626",
         items: [
-          { category: "소독액", manufacturer: "주식회사 에스에이치", name: "싸이클로(소독액)", spec: "5L", price: 66000 },
-          { category: "소독액", manufacturer: "주식회사 에스에이치", name: "페라플루디액(과초산)", spec: "4L", price: 25000 },
-          { category: "소독액", manufacturer: "주식회사 에스에이치", name: "세이프오피에이액(OPA)", spec: "4L", price: 25000 },
-          { category: "알코올", manufacturer: "주식회사 에스에이치", name: "싸이클리너(알코올)", spec: "5L", price: 13200 },
-          { category: "효소세정제", manufacturer: "주식회사 에스에이치", name: "싸이자임(효소세정제)", spec: "5L", price: 110000 },
-          { category: "효소세정제", manufacturer: "주식회사 에스에이치", name: "페라플루액", spec: "1L", price: 16800 },
-          { category: "대장내시경", manufacturer: "(주)태준제약", name: "크린뷰올산", spec: "1L/통", price: 10275 },
-          { category: "대장내시경", manufacturer: "(주)한국파마", name: "플렌뷰산", spec: "1L/통", price: 10283 },
-          { category: "대장내시경", manufacturer: "(주)한국팜비오", name: "엔도콜액", spec: "10mL/50포", price: 12500 },
-          { category: "대장내시경", manufacturer: "(주)한국팜비오", name: "오라팡정", spec: "30T/PTP", price: 16000 },
-          { category: "대장내시경", manufacturer: "(주)한국팜비오", name: "하프렙산", spec: "2L/통", price: 9341 },
-          { category: "대장내시경", manufacturer: "주식회사제뉴원사이언스", name: "원프렙일점삼팔산", spec: "1.38L/통", price: 22550 }
+          { category: "소독액", manufacturer: "주식회사 에스에이치", name: "싸이클로(소독액)", spec: "5L", price: 66000, ingredients: ingredientMapping["싸이클로(소독액)"] },
+          { category: "소독액", manufacturer: "주식회사 에스에이치", name: "페라플루디액(과초산)", spec: "4L", price: 25000, ingredients: ingredientMapping["페라플루디액(과초산)"] },
+          { category: "소독액", manufacturer: "주식회사 에스에이치", name: "세이프오피에이액(OPA)", spec: "4L", price: 25000, ingredients: ingredientMapping["세이프오피에이액(OPA)"] },
+          { category: "알코올", manufacturer: "주식회사 에스에이치", name: "싸이클리너(알코올)", spec: "5L", price: 13200, ingredients: ingredientMapping["싸이클리너(알코올)"] },
+          { category: "효소세정제", manufacturer: "주식회사 에스에이치", name: "싸이자임(효소세정제)", spec: "5L", price: 110000, ingredients: ingredientMapping["싸이자임(효소세정제)"] },
+          { category: "효소세정제", manufacturer: "주식회사 에스에이치", name: "페라플루액", spec: "1L", price: 16800, ingredients: ingredientMapping["페라플루액"] },
+          { category: "대장내시경", manufacturer: "(주)태준제약", name: "크린뷰올산", spec: "1L/통", price: 10275, ingredients: ingredientMapping["크린뷰올산"] },
+          { category: "대장내시경", manufacturer: "(주)한국파마", name: "플렌뷰산", spec: "1L/통", price: 10283, ingredients: ingredientMapping["플렌뷰산"] },
+          { category: "대장내시경", manufacturer: "(주)한국팜비오", name: "엔도콜액", spec: "10mL/50포", price: 12500, ingredients: ingredientMapping["엔도콜액"] },
+          { category: "대장내시경", manufacturer: "(주)한국팜비오", name: "오라팡정", spec: "30T/PTP", price: 16000, ingredients: ingredientMapping["오라팡정"] },
+          { category: "대장내시경", manufacturer: "(주)한국팜비오", name: "하프렙산", spec: "2L/통", price: 9341, ingredients: ingredientMapping["하프렙산"] },
+          { category: "대장내시경", manufacturer: "주식회사제뉴원사이언스", name: "원프렙일점삼팔산", spec: "1.38L/통", price: 22550, ingredients: ingredientMapping["원프렙일점삼팔산"] }
         ]
       },
       vaccine: {
@@ -804,18 +936,18 @@
         icon: "💊",
         color: "#0891B2",
         items: [
-          { category: "백신", manufacturer: "(주)엘지화학", name: "유박스비프리필드주", spec: "1mL/10PFS", price: 121000, tags: ["bio"] },
-          { category: "백신", manufacturer: "SK바이오사이언스(주)", name: "스카이셀플루주", spec: "0.5mL/10관", price: 84000, tags: ["bio"] },
-          { category: "백신", manufacturer: "SK바이오사이언스(주)", name: "스카이조스터주", spec: "0.5ml/1sy", price: 88000, tags: ["bio"] },
-          { category: "백신", manufacturer: "한국화이자제약(주)", name: "프리베나20주", spec: "0.5mL/1PFS", price: 88000, tags: ["bio"] },
-          { category: "면역", manufacturer: "동광제약(주)", name: "싸이원주", spec: "10V", price: 190000, tags: ["cold"] },
-          { category: "성장호르몬", manufacturer: "머크(주)", name: "싸이젠리퀴드카트리지주", spec: "1.03mL/1CTG", price: 75100, tags: ["bio"] },
-          { category: "항생제", manufacturer: "동광제약(주)", name: "동광세프트리악손주 1g", spec: "10V", price: 59140 },
-          { category: "독감치료", manufacturer: "한국유니온제약(주)", name: "유니페라미비르주", spec: "60mL/백", price: 17600 },
-          { category: "소염진통", manufacturer: "명문제약(주)", name: "디크놀주사", spec: "2mL/100A", price: 92200 },
-          { category: "스테로이드", manufacturer: "(주)휴메딕스", name: "덱사메타손포스페이트주사", spec: "1mL/50A", price: 11100 },
-          { category: "항원충제", manufacturer: "대한약품공업(주)", name: "메트리날주", spec: "100mL/병[PP]", price: 1216 },
-          { category: "혈압강하", manufacturer: "(주)비씨월드제약", name: "비니카핀주(니카르디핀)", spec: "5mL/25A", price: 33800 }
+          { category: "백신", manufacturer: "(주)엘지화학", name: "유박스비프리필드주", spec: "1mL/10PFS", price: 121000, tags: ["bio"], ingredients: ingredientMapping["유박스비프리필드주"] },
+          { category: "백신", manufacturer: "SK바이오사이언스(주)", name: "스카이셀플루주", spec: "0.5mL/10관", price: 84000, tags: ["bio"], ingredients: ingredientMapping["스카이셀플루주"] },
+          { category: "백신", manufacturer: "SK바이오사이언스(주)", name: "스카이조스터주", spec: "0.5ml/1sy", price: 88000, tags: ["bio"], ingredients: ingredientMapping["스카이조스터주"] },
+          { category: "백신", manufacturer: "한국화이자제약(주)", name: "프리베나20주", spec: "0.5mL/1PFS", price: 88000, tags: ["bio"], ingredients: ingredientMapping["프리베나20주"] },
+          { category: "면역", manufacturer: "동광제약(주)", name: "싸이원주", spec: "10V", price: 190000, tags: ["cold"], ingredients: ingredientMapping["싸이원주"] },
+          { category: "성장호르몬", manufacturer: "머크(주)", name: "싸이젠리퀴드카트리지주", spec: "1.03mL/1CTG", price: 75100, tags: ["bio"], ingredients: ingredientMapping["싸이젠리퀴드카트리지주"] },
+          { category: "항생제", manufacturer: "동광제약(주)", name: "동광세프트리악손주 1g", spec: "10V", price: 59140, ingredients: ingredientMapping["동광세프트리악손주 1g"] },
+          { category: "독감치료", manufacturer: "한국유니온제약(주)", name: "유니페라미비르주", spec: "60mL/백", price: 17600, ingredients: ingredientMapping["유니페라미비르주"] },
+          { category: "소염진통", manufacturer: "명문제약(주)", name: "디크놀주사", spec: "2mL/100A", price: 92200, ingredients: ingredientMapping["디크놀주사"] },
+          { category: "스테로이드", manufacturer: "(주)휴메딕스", name: "덱사메타손포스페이트주사", spec: "1mL/50A", price: 11100, ingredients: ingredientMapping["덱사메타손포스페이트주사"] },
+          { category: "항원충제", manufacturer: "대한약품공업(주)", name: "메트리날주", spec: "100mL/병[PP]", price: 1216, ingredients: ingredientMapping["메트리날주"] },
+          { category: "혈압강하", manufacturer: "(주)비씨월드제약", name: "비니카핀주(니카르디핀)", spec: "5mL/25A", price: 33800, ingredients: ingredientMapping["비니카핀주(니카르디핀)"] }
         ]
       },
       other: {
@@ -823,17 +955,17 @@
         icon: "📦",
         color: "#4A5568",
         items: [
-          { category: "", manufacturer: "(주)녹십자웰빙", name: "지씨비본주", spec: "2mL/50A", price: 25200 },
-          { category: "", manufacturer: "(주)녹십자웰빙", name: "지씨엔에이씨주", spec: "3mL/10A", price: 13200 },
-          { category: "", manufacturer: "(주)제일제약", name: "멕쿨주", spec: "2mL/50A", price: 11350 },
-          { category: "", manufacturer: "(주)휴온스메디텍", name: "휴온스암브록솔염산염주사액", spec: "2mL/50A", price: 15000 },
-          { category: "", manufacturer: "(주)휴온스메디텍", name: "휴온스클로르페니라민말레산염주사액", spec: "2mL/50A", price: 7350 },
-          { category: "", manufacturer: "(주)휴온스메디텍", name: "히스판주", spec: "1mL/50A", price: 19800 },
-          { category: "", manufacturer: "대한약품공업(주)", name: "대한디클로페낙주", spec: "2mL/50A", price: 25450 },
-          { category: "", manufacturer: "동광제약(주)", name: "케로라주", spec: "1mL/50A", price: 42350 },
-          { category: "", manufacturer: "동아에스티(주)", name: "가스터주사액20mg", spec: "10mL/10V", price: 13870 },
-          { category: "", manufacturer: "하나제약(주)", name: "알피트주사", spec: "1mL/50A", price: 25000 },
-          { category: "", manufacturer: "한국유나이티드제약(주)", name: "카르민주0.8%(인디고카르민)", spec: "5mL/10A", price: 42780 }
+          { category: "", manufacturer: "(주)녹십자웰빙", name: "지씨비본주", spec: "2mL/50A", price: 25200, ingredients: ingredientMapping["지씨비본주"] },
+          { category: "", manufacturer: "(주)녹십자웰빙", name: "지씨엔에이씨주", spec: "3mL/10A", price: 13200, ingredients: ingredientMapping["지씨엔에이씨주"] },
+          { category: "", manufacturer: "(주)제일제약", name: "멕쿨주", spec: "2mL/50A", price: 11350, ingredients: ingredientMapping["멕쿨주"] },
+          { category: "", manufacturer: "(주)휴온스메디텍", name: "휴온스암브록솔염산염주사액", spec: "2mL/50A", price: 15000, ingredients: ingredientMapping["휴온스암브록솔염산염주사액"] },
+          { category: "", manufacturer: "(주)휴온스메디텍", name: "휴온스클로르페니라민말레산염주사액", spec: "2mL/50A", price: 7350, ingredients: ingredientMapping["휴온스클로르페니라민말레산염주사액"] },
+          { category: "", manufacturer: "(주)휴온스메디텍", name: "히스판주", spec: "1mL/50A", price: 19800, ingredients: ingredientMapping["히스판주"] },
+          { category: "", manufacturer: "대한약품공업(주)", name: "대한디클로페낙주", spec: "2mL/50A", price: 25450, ingredients: ingredientMapping["대한디클로페낙주"] },
+          { category: "", manufacturer: "동광제약(주)", name: "케로라주", spec: "1mL/50A", price: 42350, ingredients: ingredientMapping["케로라주"] },
+          { category: "", manufacturer: "동아에스티(주)", name: "가스터주사액20mg", spec: "10mL/10V", price: 13870, ingredients: ingredientMapping["가스터주사액20mg"] },
+          { category: "", manufacturer: "하나제약(주)", name: "알피트주사", spec: "1mL/50A", price: 25000, ingredients: ingredientMapping["알피트주사"] },
+          { category: "", manufacturer: "한국유나이티드제약(주)", name: "카르민주0.8%(인디고카르민)", spec: "5mL/10A", price: 42780, ingredients: ingredientMapping["카르민주0.8%(인디고카르민)"] }
         ]
       },
       device: {
@@ -842,8 +974,8 @@
         color: "#059669",
         isDevice: true,
         items: [
-          { category: "포셉", manufacturer: "주식회사 인코아", name: "인코아 위 포셉", spec: "1.7mm, 2.3mm", price: 4500 },
-          { category: "포셉", manufacturer: "주식회사 인코아", name: "인코아 대장 포셉", spec: "1.7mm, 2.3mm", price: 4500 },
+          { category: "포셉", manufacturer: "주식회사 인코아", name: "인코아 위 포셉", spec: "1.8mm, 2.3mm", price: 4500 },
+          { category: "포셉", manufacturer: "(주)위드메디컬", name: "위드 대장 포셉", spec: "1.8mm, 2.3mm", price: 4500 },
           { category: "스네어", manufacturer: "(주)위드메디컬", name: "위드 스네어", spec: "10mm, 15mm, 20mm, 24mm", price: 18000 },
           { category: "인젝터", manufacturer: "(주)위드메디컬", name: "위드 인젝터", spec: "23G, 25G", price: 44710 },
           { category: "클립", manufacturer: "(주)태웅메디칼", name: "옵티머스 클립", spec: "2300mm/13mm/115°", price: 16500 },
@@ -908,15 +1040,31 @@
                 </tr>
               </thead>
               <tbody>
-                ${filteredItems.map(item => `
-                  <tr>
-                    ${showCategory ? `<td class="hide-mobile">${item.category}</td>` : ''}
-                    <td>${item.manufacturer}</td>
-                    <td class="product-name">${renderTags(item.tags)}${item.name}</td>
-                    <td>${item.spec}</td>
-                    <td class="price">${formatPrice(item.price)}</td>
-                  </tr>
-                `).join('')}
+                ${filteredItems.map((item, index) => {
+                  const hasIngredients = item.ingredients && item.ingredients !== 'NaN' && !data.isDevice;
+                  const productId = `${key}-${index}`;
+                  const columnCount = showCategory ? 5 : 4;
+
+                  return `
+                    <tr class="product-row${hasIngredients ? '' : ' no-expand'}" ${hasIngredients ? `data-product-id="${productId}"` : ''}>
+                      ${showCategory ? `<td class="hide-mobile">${item.category}</td>` : ''}
+                      <td>${item.manufacturer}</td>
+                      <td class="product-name">
+                        ${hasIngredients ? '<span class="expand-icon">▶</span>' : ''}${renderTags(item.tags)}${item.name}
+                      </td>
+                      <td>${item.spec}</td>
+                      <td class="price">${formatPrice(item.price)}</td>
+                    </tr>
+                    ${hasIngredients ? `
+                    <tr class="ingredient-row" data-ingredient-for="${productId}">
+                      <td colspan="${columnCount}" class="ingredient-cell">
+                        <span class="ingredient-label">💊 성분:</span>
+                        ${item.ingredients}
+                      </td>
+                    </tr>
+                    ` : ''}
+                  `;
+                }).join('')}
               </tbody>
             </table>
           </div>
@@ -994,6 +1142,24 @@
 
     // Initial render
     renderContent();
+
+    // Expandable row toggle functionality
+    document.addEventListener('click', (e) => {
+      const productRow = e.target.closest('.product-row');
+      if (!productRow || productRow.classList.contains('no-expand')) return;
+
+      const productId = productRow.dataset.productId;
+      if (!productId) return;
+
+      // Toggle expanded class on product row
+      productRow.classList.toggle('expanded');
+
+      // Toggle show class on ingredient row
+      const ingredientRow = document.querySelector(`.ingredient-row[data-ingredient-for="${productId}"]`);
+      if (ingredientRow) {
+        ingredientRow.classList.toggle('show');
+      }
+    });
 
     // Password Protection
     (function() {
