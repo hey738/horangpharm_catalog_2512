@@ -515,9 +515,91 @@
       background: var(--primary-dark);
       transform: translateY(-3px);
     }
+
+    /* Password Protection */
+    .password-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .password-overlay.hidden {
+      display: none;
+    }
+
+    .password-box {
+      background: var(--white);
+      padding: 3rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+      min-width: 320px;
+    }
+
+    .password-box h2 {
+      color: var(--text-dark);
+      margin-bottom: 2rem;
+      font-size: 1.5rem;
+    }
+
+    .password-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--border);
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .password-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .password-btn {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .password-btn:hover {
+      background: var(--primary-dark);
+    }
+
+    .password-error {
+      color: #dc2626;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      display: none;
+    }
   </style>
 </head>
 <body>
+  <!-- Password Protection Screen -->
+  <div id="passwordOverlay" class="password-overlay">
+    <div class="password-box">
+      <h2>접근 권한이 필요합니다</h2>
+      <input type="password" id="passwordInput" class="password-input" placeholder="비밀번호" />
+      <button id="passwordBtn" class="password-btn">확인</button>
+      <div id="passwordError" class="password-error">인증에 실패했습니다. 다시 시도해주세요</div>
+    </div>
+  </div>
+
   <!-- Header -->
   <header class="header">
     <div class="header-content">
@@ -912,6 +994,67 @@
 
     // Initial render
     renderContent();
+
+    // Password Protection
+    (function() {
+      const CORRECT_PASSWORD_HASH = 'a7948b832f152006b554c9c43817a0d164466d433648ded0ca363e06e7ef93aa';
+      const AUTH_KEY = 'horangpharm_authenticated';
+
+      const passwordOverlay = document.getElementById('passwordOverlay');
+      const passwordInput = document.getElementById('passwordInput');
+      const passwordBtn = document.getElementById('passwordBtn');
+      const passwordError = document.getElementById('passwordError');
+
+      // SHA-256 hash function
+      async function sha256(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+      }
+
+      // Check if already authenticated
+      function checkAuth() {
+        const isAuthenticated = localStorage.getItem(AUTH_KEY) === 'true';
+        if (isAuthenticated) {
+          passwordOverlay.classList.add('hidden');
+        } else {
+          passwordOverlay.classList.remove('hidden');
+        }
+        return isAuthenticated;
+      }
+
+      // Validate password
+      async function validatePassword() {
+        const password = passwordInput.value;
+        const hash = await sha256(password);
+
+        if (hash === CORRECT_PASSWORD_HASH) {
+          localStorage.setItem(AUTH_KEY, 'true');
+          passwordOverlay.classList.add('hidden');
+          passwordError.style.display = 'none';
+          passwordInput.value = '';
+        } else {
+          passwordError.style.display = 'block';
+          passwordInput.value = '';
+          passwordInput.focus();
+        }
+      }
+
+      // Event listeners
+      passwordBtn.addEventListener('click', validatePassword);
+      passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          validatePassword();
+        }
+      });
+
+      // Initialize
+      if (!checkAuth()) {
+        passwordInput.focus();
+      }
+    })();
   </script>
 </body>
 </html>
